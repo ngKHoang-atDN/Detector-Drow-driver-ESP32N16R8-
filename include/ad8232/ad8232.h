@@ -98,4 +98,4 @@ AD8232_status ad8232_read(AD8232_t *ad8232 ,uint8_t* buffer,uint32_t timeout_wai
 
 #endif
 
-#endif // AD3232
+#endif // AD8232

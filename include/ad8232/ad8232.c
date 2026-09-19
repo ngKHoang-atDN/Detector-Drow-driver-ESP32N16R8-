@@ -67,6 +67,20 @@ AD8232_status ad8232_init(AD8232_t *ad8232) {
         .pull_up_en   = GPIO_PULLUP_DISABLE   ,
     };
 
+    res = gpio_config(&io_IN);
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to config input GPIO: %s", esp_err_to_name(res));
+        adc_continuous_del_handle(ad8232->adc_cHD);
+        return error;
+    }
+
+    res = gpio_config(&io_OUT);
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to config output GPIO: %s", esp_err_to_name(res));
+        adc_continuous_del_handle(ad8232->adc_cHD);
+        return error;
+    }
+
     res = adc_continuous_start(ad8232->adc_cHD);  // FIX: start ADC
     if (res != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start ADC: %s", esp_err_to_name(res));
@@ -74,8 +88,7 @@ AD8232_status ad8232_init(AD8232_t *ad8232) {
         return error;
     }
     
-    gpio_config(&io_IN); gpio_config (&io_OUT);
-
+    
     if(ad8232_isEnable(ad8232) ==disable) return disable ;
 
     return success;
@@ -100,14 +113,54 @@ AD8232_status ad8232_isEnable(AD8232_t *ad8232){
 }
 
 AD8232_status ad8232_deinit(AD8232_t *ad8232) {
-    //stop adc_continuous
     esp_err_t res = adc_continuous_stop(ad8232->adc_cHD);
-    if ( res != ESP_OK ) ESP_LOGE(TAG,"Failed to stop adc channel",res);
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to stop ADC: %s", esp_err_to_name(res));
+        return error;
+    }
+    
     res = adc_continuous_deinit(ad8232->adc_cHD);
-    if (res != ESP_OK )  ESP_LOGE(TAG , "faild to deinit sensor",res) ;
-    return disable ;
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to deinit sensor: %s", esp_err_to_name(res));
+        return error;
+    }
+    
+    return success;
 }
 
+
 AD8232_status ad8232_read(AD8232_t *ad8232 ,uint8_t* buffer,uint32_t timeout_wait ) {
+    // lock mutex
+    if (xSemaphoreTake(ad8232->mutex, pdMS_TO_TICKS(timeout_wait)) == pdFALSE) {
+        ESP_LOGE(TAG, "Failed to acquire mutex");
+        return busy;
+    }
+
+    if (ad8232 == NULL || buffer == NULL) {
+        ESP_LOGE(TAG, "Invalid parameters");
+        return error;
+    }
     
+    // Đọc từ ADC continuous
+    uint32_t out_length = 0;
+    esp_err_t res = adc_continuous_read(
+        ad8232->adc_cHD,
+        buffer,
+        256,  // Đọc tối đa 256 bytes
+        &out_length,
+        timeout_wait
+    );
+    
+    if (res == ESP_ERR_TIMEOUT) {
+        ESP_LOGW(TAG, "Read timeout");
+        return time_out;
+    } else if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to read ADC: %s", esp_err_to_name(res));
+        return error;
+    }
+    
+    ESP_LOGI(TAG, "Read %lu bytes", out_length);
+    //free mutex
+    xSemaphoreGive(ad8232->mutex);
+    return success;
 }
