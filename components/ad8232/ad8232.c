@@ -33,15 +33,14 @@ AD8232_status ad8232_set_enabled(AD8232_t *dev, bool enabled)
 
 bool ad8232_isConected(const AD8232_t *ad8232){
     bool LO_plus = (gpio_get_level(ad8232->cfg.lo_plus_pin) == 0) ;
-    bool LO_minus = ( gpio_get_level(ad8232->cfg.lo_minus_pin == 0)) ;
+    bool LO_minus = ( gpio_get_level(ad8232->cfg.lo_minus_pin) == 0) ;
     /**  Lo_minus  | Lo_plus  | conected (SDN pin)
      *      0           0           1
      *      1           1           0
      *      0           1           0
      *      1           0           1
      */
-    if  (( LO_minus == LO_plus) == 0 ) return true ;
-    else return false ;
+    return LO_plus && LO_minus;
 };
 
 
@@ -65,12 +64,6 @@ AD8232_status ad8232_init(AD8232_t *ad8232, const AD8232_config_t *cfg) {
     .conv_frame_size = AD8232_FRAME_BYTES,
     .max_store_buf_size = AD8232_POOL_BYTES,
     };
-
-    if (adc_continuous_new_handle(&handle_cfg, &ad8232->adc) != ESP_OK) {
-        ad8232->adc = NULL;
-        ESP_LOGE(TAG, "Failed to create ADC handle");
-        return AD8232_ERR_ADC;
-    }
 
     adc_digi_pattern_config_t adc_pattern_CF = {
         .atten = ADC_ATTEN_DB_12 ,

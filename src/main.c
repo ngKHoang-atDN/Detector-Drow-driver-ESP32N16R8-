@@ -13,12 +13,13 @@
 #include "driver/gpio.h"
 #include <esp_err.h>
 #include <esp_log.h>
+#include <inttypes.h> 
 #include "ad8232.h"
 
 #define channel_adc ADC_CHANNEL_6 // GPIO num 7 ( esp 32 s3 n16r8)
 #define minus GPIO_NUM_10
 #define plus GPIO_NUM_11
-#define sdn GPIO_NUM_12
+#define sdn GPIO_NUM_9
 #define freq 2000
 
 static AD8232_t ad8232 ;
@@ -27,14 +28,17 @@ static const char *TAG = "MAIN";
 
 void ad8232_register() {
     const AD8232_config_t ad8232_cfg = {
-        .channel = channel_adc ,
-        .lo_minus_pin = minus ,
-        .lo_plus_pin = plus ,
-        .sample_freq_hz =  freq ,
+        .channel = channel_adc,
+        .lo_minus_pin = minus,
+        .lo_plus_pin = plus,
+        .sample_freq_hz = freq,
         .sdn_pin = sdn 
     };
 
-    ad8232_init(&ad8232 , &ad8232_cfg);
+    AD8232_status st = ad8232_init(&ad8232, &ad8232_cfg);
+    if (st != AD8232_OK) {
+        ESP_LOGE(TAG, "ad8232_init failed, status=%d", (int)st);
+    }
 }
 
 static void ECG(void *pvparameter) {

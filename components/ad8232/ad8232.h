@@ -23,7 +23,7 @@
 /* One DMA frame (bytes). Must be a multiple of SOC_ADC_DIGI_RESULT_BYTES (4). */
 #define AD8232_FRAME_BYTES      256
 /* Driver pool = 4 frames, i.e. tolerance for a late reader. */
-#define AD8232_POOL_BYTES       (AD8232_FRAME_BYTES * 4)
+#define AD8232_POOL_BYTES       2048
 /* LOD+/LOD- go HIGH when an electrode is disconnected (AD8232 datasheet). */
 #define AD8232_LEADS_OFF_L 0
 
